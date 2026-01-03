@@ -16,45 +16,79 @@
             <p class="subtitle">AI-Powered Fraud Detection System</p>
         </header>
         <main class="main-content">
-            <div class="form-card">
-                <form action="/predict" method="post" class="analysis-form">
-                    <div class="field-row">
-                        <input type="text" name="title" placeholder="Job Title" value="{{ form_values.title | default('') }}" />
-                        <input type="text" name="company" placeholder="Company" value="{{ form_values.company | default('') }}" />
-                    </div>
-                    <div class="field-row">
-                        <input type="text" name="location" placeholder="Location" value="{{ form_values.location | default('') }}" />
-                    </div>
-                    <textarea name="description" placeholder="Full job description" required>{{ form_values.description | default('') }}</textarea>
-                    <textarea name="requirements" placeholder="Requirements">{{ form_values.requirements | default('') }}</textarea>
-                    <textarea name="how_to_apply" placeholder="How to apply" class="how-to-apply">{{ form_values.how_to_apply | default('') }}</textarea>
-                    <button type="submit" class="cta-button">Analyze Content</button>
-                </form>
+            <div class="layout-grid">
+                <section class="left-col">
+                    {% if prediction %}
+                    <div class="result-container">
+                        <div class="result-card {% if label == 'Real' %}result-card-real{% else %}result-card-fake{% endif %}">
+                            <div class="result-inner">
+                                <div class="result-icon" aria-hidden>
+                                    {% if label == 'Real' %}
+                                    <!-- Check Icon -->
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    {% else %}
+                                    <!-- Cross Icon -->
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 6l12 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <div class="result-header">
+                                        <span class="badge {% if label == 'Real' %}badge-real{% else %}badge-fake{% endif %}">{{ label }}</span>
+                                        <p class="result-text {% if label == 'Real' %}result-real{% else %}result-fake{% endif %}">{{ prediction }}</p>
+                                    </div>
 
-                {% if prediction %}
-                <div class="result-container">
-                    <div class="result-card {% if 'Real' in prediction %}result-card-real{% else %}result-card-fake{% endif %}">
-                        <div class="result-inner">
-                            <div class="result-icon" aria-hidden>
-                                {% if 'Real' in prediction %}
-                                <!-- Check Icon -->
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                {% else %}
-                                <!-- Cross Icon -->
-                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 6l12 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                {% endif %}
+                                    {% if probability_pct is defined %}
+                                    <div class="prob-meter" aria-hidden>
+                                        <div class="prob-bar {% if label=='Fake' %}prob-bar-fake{% else %}prob-bar-real{% endif %}" style="--bar-fill: {{ bar_pct }}%;"></div>
+                                    </div>
+                                    <div class="prob-row">
+                                        <div class="prob-value">{{ bar_label }}</div>
+                                    </div>
+                                    {% elif probability %}
+                                    <p class="muted mt-8">{{ probability }}</p>
+                                    {% endif %}
+
+
+
+                                    {% if label == 'Fake' and explanations %}
+                                    <div class="explanations">
+                                        <strong class="muted">Reasons this posting may be suspicious:</strong>
+                                        <ul class="muted mt-6 ml-1rem">
+                                            {% for e in explanations %}
+                                            <li>{{ e }}</li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                </div>
                             </div>
-                            <p class="result-text {% if 'Real' in prediction %}result-real{% else %}result-fake{% endif %}">{{ prediction }}</p>
                         </div>
                     </div>
-                </div>
-                {% endif %}
-            </div>
+                    {% endif %}
 
-            <div class="examples-grid">
-                <div class="example-card">
-                    <h3>Real Job Example</h3>
-                    <textarea id="legit-job" readonly>
+                    <div class="form-card">
+                        <form action="/predict" method="post" class="analysis-form">
+                            <div class="field-row">
+                                <input type="text" name="title" placeholder="Job Title" value="{{ form_values.title | default('') }}" />
+                                <input type="text" name="company" placeholder="Company" value="{{ form_values.company | default('') }}" />
+                            </div>
+                            <div class="field-row">
+                                <input type="text" name="location" placeholder="Location" value="{{ form_values.location | default('') }}" />
+                            </div>
+                            <textarea name="description" placeholder="Full job description" required>{{ form_values.description | default('') }}</textarea>
+                            <textarea name="requirements" placeholder="Requirements">{{ form_values.requirements | default('') }}</textarea>
+                            <textarea name="how_to_apply" placeholder="How to apply" class="how-to-apply">{{ form_values.how_to_apply | default('') }}</textarea>
+                            <button type="submit" class="cta-button">Analyze Content</button>
+                        </form>
+                    </div>
+                </section>
+
+                <aside class="right-col">
+                    <div class="sidebar">
+                        <div class="examples-grid">
+                            <div class="example-card">
+                                <h3>Real Job Example</h3>
+                                <textarea id="legit-job" readonly>
 Title: Software Engineer
 Company: Goldman Sachs
 Location: Bengaluru, India
@@ -65,11 +99,11 @@ Requirements:
 - Proficiency in algorithm design and analysis
 - Experience with programming languages and runtime systems
 How to Apply: Visit the Goldman Sachs careers page: https://www.goldmansachs.com/careers/our-firm/engineering
-                    </textarea>
-                </div>
-                <div class="example-card">
-                    <h3>Fake Job Example</h3>
-                    <textarea id="fraud-job" readonly>
+                                </textarea>
+                            </div>
+                            <div class="example-card">
+                                <h3>Fake Job Example</h3>
+                                <textarea id="fraud-job" readonly>
 Title: Junior Developer - Immediate Hiring
 Company: Future AI Solutions
 Location: Remote
@@ -78,8 +112,11 @@ Requirements:
 - No experience required; basic Python preferred
 - Must have a laptop with internet access
 How to Apply: Apply via careers@futureaisolutions.com. A refundable ₹4,999 deposit is required for training materials.
-                    </textarea>
-                </div>
+                                </textarea>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
             </div>
         </main>
     </div>

@@ -5,6 +5,9 @@ import tensorflow as tf
 from flask import Flask, request, render_template
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
+# Explanation helper (rule-based)
+from explainers import generate_explanations
+
 # Reduce TensorFlow logging noise
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
@@ -84,13 +87,48 @@ def predict():
     # Make prediction using FULL TensorFlow model
     prediction = float(model.predict(input_data)[0][0])
 
-    # Classification threshold and human-friendly labels
+    # Probability and classification
+    probability_pct = round(prediction * 100, 1)  # percent chance of being Fake
+    # Determine predicted label using same threshold as before
     label = "Fake" if prediction > 0.7 else "Real"
 
-    # Only return the classification label (no probability, tokens, or full text)
+    # Human readable messages
+    probability_text = f"This job posting has a {probability_pct}% probability of being fake."
+
+    # Compute visual bar percentage so the meter reads "Realness" when label is Real
+    # - For Fake postings: bar shows fake probability (higher = more red-filled)
+    # - For Real postings: bar shows realness = 100 - fake_probability (higher = more green-filled)
+    # Visual mapping: show bar fill as "realness" (100 - fake probability)
+    # This ensures a high raw fake probability (e.g., 81.2%) displays a small meter fill (~18.8%).
+    bar_pct = round(100 - probability_pct, 1)
+
+    # Bar label shows raw probability when Fake and 'X% Real' when Real
+    if label == "Fake":
+        bar_label = f"{probability_pct}% Fake"
+    else:
+        bar_label = f"{bar_pct}% Real"
+
+    # Generate rule-based explanations for transparency
+    explanations = generate_explanations(
+        combined_text,
+        title=title,
+        company=company,
+        location=location,
+        how_to_apply=how_to_apply,
+        requirements=requirements,
+        description=description
+    )
+
+    # Return classification label, probability, tokens, explanations and bar values for display
     return render_template(
         "index.html",
         prediction=f"The job post is {label}",
+        label=label,
+        probability=probability_text,
+        probability_pct=probability_pct,
+        bar_pct=bar_pct,
+        bar_label=bar_label,
+        explanations=explanations,
         form_values=request.form
     )
 
